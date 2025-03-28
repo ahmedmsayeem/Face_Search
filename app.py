@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
 import os
 import cv2
+import base64
+from io import BytesIO
+from PIL import Image
+
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 app = Flask(__name__)
@@ -33,12 +37,21 @@ def upload():
 
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-        print("faces",faces)
+
+        # Draw rectangles around detected faces
+        for (x, y, w, h) in faces:
+            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 3)
+
+        # Convert the processed image to a base64 string
+        _, buffer = cv2.imencode('.jpg', image)
+        image_blob = base64.b64encode(buffer).decode('utf-8')
+
         stats = {
             "filename": file.filename,
             "dimensions": f"{width}x{height}",
             "channels": channels,
-            "faces": len(faces)
+            "faces": len(faces),
+            "image_blob": image_blob
         }
         return render_template('stats.html', stats=stats)
 

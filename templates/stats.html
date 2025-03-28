@@ -32,6 +32,8 @@
         <p><strong>Filename:</strong> {{ stats.filename }}</p>
         <p><strong>Dimensions:</strong> {{ stats.dimensions }}</p>
         <p><strong>Total Faces:</strong> {{ stats.faces }}</p>
+        <img src="data:image/jpeg;base64,{{ stats.image_blob }}" style="width: 400px;" alt="Processed Image" style="max-width: 100%; margin-top: 20px;">
+        <br>
         <a href="/" class="back-btn">Upload Another Image</a>
     </div>
 </body>

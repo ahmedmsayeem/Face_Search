@@ -1,0 +1,43 @@
+# Ignore virtual environment
+venv/
+./venv
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore uploads and temporary files
+uploads/
+*.log
+*.tmp
+
+# Ignore IDE/editor-specific files
+.vscode/
+.idea/
+*.swp
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore environment variables or secrets
+.env
+*.env
+
+# Ignore compiled files
+*.so
+*.dll
+*.exe
+
+# Ignore model files (if not version-controlled)
+models/*.dat
+models/*.h5
+models/*.pkl
+
+# Ignore node_modules (if using Node.js for frontend)
+node_modules/
+
+# Ignore build artifacts
+dist/
+build/

@@ -30,8 +30,10 @@
     <div class="container">
         <h1>Image Stats</h1>
         <p><strong>Filename:</strong> {{ stats.filename }}</p>
-        <p><strong>Dimensions:</strong> {{ stats.dimensions }}</p>
+        <p><strong>Face matched?:</strong> {{ stats.face_matched }}</p>
+        <!-- <p><strong>Dimensions:</strong> {{ stats.dimensions }}</p> -->
         <p><strong>Total Faces:</strong> {{ stats.faces }}</p>
+        <p><strong>Total face_signatures:</strong> {{ stats.face_signatures }}</p>
         <img src="data:image/jpeg;base64,{{ stats.image_blob }}" style="width: 400px;" alt="Processed Image" style="max-width: 100%; margin-top: 20px;">
         <br>
         <a href="/" class="back-btn">Upload Another Image</a>

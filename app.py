@@ -4,13 +4,19 @@ import cv2
 import base64
 from io import BytesIO
 from PIL import Image
-import dlib
-import face_recognition
+import numpy as np
+import dlib  # Use dlib for face detection and encoding
 
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+# Initialize dlib's face detector and shape predictor
+face_detector = dlib.get_frontal_face_detector()
+face_rec_model = dlib.face_recognition_model_v1(
+    "models/dlib_face_recognition_resnet_model_v1.dat"
+)
+shape_predictor = dlib.shape_predictor(
+    "models/shape_predictor_68_face_landmarks.dat"
+)
 
 app = Flask(__name__)
-
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -31,29 +37,42 @@ def process_image(file_path):
         return None, "Invalid image file"
 
     height, width, channels = image.shape
-
-    # Use face_recognition for face detection
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    face_locations = face_recognition.face_locations(rgb_image)
 
-    # Convert face locations to OpenCV rectangle format and draw them
-    faces = []
-    for (top, right, bottom, left) in face_locations:
-        faces.append((left, top, right - left, bottom - top))
-        cv2.rectangle(image, (left, top), (right, bottom), (0, 255, 0), 3)
+    # Detect faces using dlib
+    detected_faces = face_detector(rgb_image, 1)
+    face_encodings = []  # List to store face signatures
 
-    # Print the coordinates of the identified faces
-    print("Identified faces:", faces)
+    # Mark detected faces and extract face encodings
+    for face in detected_faces:
+        x, y, w, h = (face.left(), face.top(), face.width(), face.height())
+        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 3)
 
+        # Get the landmarks and compute the face encoding
+        shape = shape_predictor(rgb_image, face)
+        encoding = face_rec_model.compute_face_descriptor(rgb_image, shape)
+        face_encodings.append(list(encoding))  # Convert encoding to a list for JSON serialization
+    
+    face_matched = False
+    if len(face_encodings) == 2:
+        distance = np.linalg.norm(np.array(face_encodings[0]) - np.array(face_encodings[1]))
+        if distance < 0.6:  # Threshold (can vary)
+            print("Faces match!")
+            face_matched=True
+        else:
+            print("Faces do not match.")
     # Convert the processed image to a base64 string
     _, buffer = cv2.imencode('.jpg', image)
     image_blob = base64.b64encode(buffer).decode('utf-8')
+    # print(face_encodings)
 
     stats = {
         "dimensions": f"{width}x{height}",
         "channels": channels,
-        "faces": len(faces),
-        "image_blob": image_blob
+        "faces": len(detected_faces),
+        "face_signatures": len(face_encodings),  # Include face signatures in the stats
+        "image_blob": image_blob,
+        "face_matched": face_matched,
     }
     return stats, None
 

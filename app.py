@@ -4,6 +4,8 @@ import cv2
 import base64
 from io import BytesIO
 from PIL import Image
+import dlib
+import face_recognition
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
@@ -29,14 +31,21 @@ def process_image(file_path):
         return None, "Invalid image file"
 
     height, width, channels = image.shape
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-    
-    # marking
-    for (x, y, w, h) in faces:
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 3)
 
-    # buffer for communicating 
+    # Use face_recognition for face detection
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    face_locations = face_recognition.face_locations(rgb_image)
+
+    # Convert face locations to OpenCV rectangle format and draw them
+    faces = []
+    for (top, right, bottom, left) in face_locations:
+        faces.append((left, top, right - left, bottom - top))
+        cv2.rectangle(image, (left, top), (right, bottom), (0, 255, 0), 3)
+
+    # Print the coordinates of the identified faces
+    print("Identified faces:", faces)
+
+    # Convert the processed image to a base64 string
     _, buffer = cv2.imencode('.jpg', image)
     image_blob = base64.b64encode(buffer).decode('utf-8')
 

@@ -3,9 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World</title>
+    <title>FaceSearch</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .container {
+            text-align: center;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .upload-btn {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1 >Hello World!</h1>
+    <div class="container">
+        <h1>Welcome to FaceSearch</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*">
+            <button type="submit" class="upload-btn">Upload Image</button>
+        </form>
+    </div>
 </body>
 </html>

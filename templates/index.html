@@ -24,15 +24,43 @@
         .upload-btn {
             margin-top: 20px;
         }
+        .multi-upload-section {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Welcome to FaceSearch</h1>
-        <form action="/upload" method="post" enctype="multipart/form-data">
-            <input type="file" name="image" accept="image/*">
-            <button type="submit" class="upload-btn">Upload Image</button>
-        </form>
+        <div class="multi-upload-section">
+            <h2>Upload Images in Bulk</h2>
+            <form action="/upload-multiple" method="post" enctype="multipart/form-data">
+                <input type="file" name="images" accept="image/*" multiple>
+                <button type="submit" class="upload-btn">Upload Images</button>
+            </form>
+        </div>
+
+        
+        <div>
+            <h2>Search for similar images from ur selfie</h2>
+            <form action="/find-similar" method="post" enctype="multipart/form-data">
+                <input type="file" name="image" accept="image/*">
+                <button type="submit" class="upload-btn">Upload Image</button>
+            </form>
+            
+        </div>
+        
+        <div>
+            <h2>Test: see if 2 faces in image are similar</h2>
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <input type="file" name="image" accept="image/*">
+                <button type="submit" class="upload-btn">Upload Image</button>
+            </form>
+        </div>
+        
+        
     </div>
 </body>
 </html>

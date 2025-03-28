@@ -24,7 +24,21 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    # Get all image filenames from the uploads folder
+    image_files = [
+        f for f in os.listdir(app.config['UPLOAD_FOLDER'])
+        if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))
+    ]
+
+    # Convert images to base64 blobs
+    image_blobs = []
+    for image_file in image_files:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file)
+        with open(file_path, "rb") as img_file:
+            image_blob = base64.b64encode(img_file.read()).decode('utf-8')
+            image_blobs.append(image_blob)
+
+    return render_template('index.html', image_blobs=image_blobs)
 
 def save_uploaded_file(file, upload_folder):
     file_path = os.path.join(upload_folder, file.filename)
@@ -39,16 +53,13 @@ def process_image(file_path):
     height, width, channels = image.shape
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    # Detect faces using dlib
     detected_faces = face_detector(rgb_image, 1)
     face_encodings = []  # List to store face signatures
 
-    # Mark detected faces and extract face encodings
     for face in detected_faces:
         x, y, w, h = (face.left(), face.top(), face.width(), face.height())
         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 3)
 
-        # Get the landmarks and compute the face encoding
         shape = shape_predictor(rgb_image, face)
         encoding = face_rec_model.compute_face_descriptor(rgb_image, shape)
         face_encodings.append(list(encoding))  # Convert encoding to a list for JSON serialization

@@ -29,6 +29,20 @@
             padding: 20px;
             border-top: 1px solid #ddd;
         }
+        .image-gallery {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .image-gallery img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -60,6 +74,14 @@
             </form>
         </div>
         
+        <div class="image-gallery">
+            <h2>Database Images</h2>
+            <div>
+                {% for image_blob in image_blobs %}
+                    <img src="data:image/jpeg;base64,{{ image_blob }}" alt="Image">
+                {% endfor %}
+            </div>
+        </div>
         
     </div>
 </body>

@@ -9,7 +9,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
@@ -17,12 +17,40 @@
         .container {
             text-align: center;
             background: #fff;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 30px;
+            border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #555;
+        }
+        form {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center; /* Align items vertically */
+            justify-content: center; /* Center the input and button */
+            gap: 10px; /* Add spacing between input and button */
         }
         .upload-btn {
-            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .upload-btn:hover {
+            background-color: #0056b3;
         }
         .multi-upload-section {
             margin-top: 30px;
@@ -33,7 +61,7 @@
             margin-top: 30px;
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 15px;
             justify-content: center;
         }
         .image-gallery img {
@@ -43,11 +71,15 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+        input[type="file"] {
+            flex: 0; /* Prevent input from stretching */
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Welcome to FaceSearch</h1>
+
         <div class="multi-upload-section">
             <h2>Upload Images in Bulk</h2>
             <form action="/upload-multiple" method="post" enctype="multipart/form-data">
@@ -56,24 +88,25 @@
             </form>
         </div>
 
-        
         <div>
-            <h2>Search for similar images from ur selfie</h2>
+            <h2>Search for Similar Images</h2>
             <form action="/find-similar" method="post" enctype="multipart/form-data">
                 <input type="file" name="image" accept="image/*">
-                <button type="submit" class="upload-btn">Upload Image</button>
+                <button type="submit" class="upload-btn">Search</button>
+            </form>
+        </div>
+
+        <div>
+            <h2>Compare Two Faces in an Image  </h2>
+            <h5 style="display: inline;">(choose a picture with 2 faces)</h5>
+            
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <input type="file" name="image" accept="image/*">
+                <button type="submit" class="upload-btn">Compare Faces</button>
             </form>
             
         </div>
-        
-        <div>
-            <h2>Test: see if 2 faces in image are similar</h2>
-            <form action="/upload" method="post" enctype="multipart/form-data">
-                <input type="file" name="image" accept="image/*">
-                <button type="submit" class="upload-btn">Upload Image</button>
-            </form>
-        </div>
-        
+
         <div class="image-gallery">
             <h2>Database Images</h2>
             <div>
@@ -82,7 +115,6 @@
                 {% endfor %}
             </div>
         </div>
-        
     </div>
 </body>
 </html>

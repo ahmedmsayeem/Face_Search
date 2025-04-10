@@ -187,7 +187,16 @@ def find_similar():
 
     # Find similar images
     similar_images = find_similar_images(reference_image_path)
-    return jsonify({"similar_images": similar_images})
+
+    # Convert similar images to base64 blobs for rendering
+    similar_image_blobs = []
+    for image_file in similar_images:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file)
+        with open(file_path, "rb") as img_file:
+            image_blob = base64.b64encode(img_file.read()).decode('utf-8')
+            similar_image_blobs.append(image_blob)
+
+    return render_template('similar.html', similar_image_blobs=similar_image_blobs)
 
 if __name__ == '__main__':
     app.run(debug=True)

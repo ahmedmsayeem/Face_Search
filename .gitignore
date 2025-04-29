@@ -32,9 +32,9 @@ Thumbs.db
 *.exe
 
 # Ignore model files (if not version-controlled)
-# models/*.dat
-# models/*.h5
-# models/*.pkl
+models/*.dat
+models/*.h5
+models/*.pkl
 
 # Ignore node_modules (if using Node.js for frontend)
 node_modules/

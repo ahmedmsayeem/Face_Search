@@ -1,32 +1,35 @@
-# Use an official Python image as the base image
+# Use official lightweight Python image
 FROM python:3.9-slim
 
-# Set environment variables to prevent Python from writing .pyc files and to buffer output
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    cmake \
+# Install system packages (including CMake)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    cmake \
     libopenblas-dev \
     liblapack-dev \
     libx11-dev \
     libgtk-3-dev \
     libboost-python-dev \
+    libgl1-mesa-glx \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory in the container
+# Set working directory
 WORKDIR /app
 
-# Copy the project files into the container
-COPY . /app
+# Copy project files
+COPY . .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python packages
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir opencv-python
 
-# Expose the port the app runs on
+# Expose application port
 EXPOSE 5000
 
-# Command to run the application
+# Run the application
 CMD ["python", "app.py"]

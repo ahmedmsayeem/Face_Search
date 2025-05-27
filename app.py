@@ -5,7 +5,10 @@ import base64
 from io import BytesIO
 from PIL import Image
 import numpy as np
-import dlib  # Use dlib for face detection and encoding
+import dlib
+import json
+
+ENCODINGS_FILE = "encodings.json"
 
 # Initialize dlib's face detector and shape predictor
 face_detector = dlib.get_frontal_face_detector()
@@ -17,7 +20,6 @@ shape_predictor = dlib.shape_predictor(
 )
 
 app = Flask(__name__)
-
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -35,15 +37,81 @@ def home():
     for image_file in image_files:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file)
         with open(file_path, "rb") as img_file:
-            image_blob = base64.b64encode(img_file.read()).decode('utf-8')
-            image_blobs.append(image_blob)
+            blob = base64.b64encode(img_file.read()).decode('utf-8')
+            image_blobs.append(blob)
 
     return render_template('index.html', image_blobs=image_blobs)
 
-def save_uploaded_file(file, upload_folder):
-    file_path = os.path.join(upload_folder, file.filename)
+
+def save_uploaded_file(file):
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
     file.save(file_path)
     return file_path
+
+
+def extract_and_store_encodings(file_path, filename):
+    image = cv2.imread(file_path)
+    if image is None:
+        return
+
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    detected_faces = face_detector(rgb_image, 1)
+    encodings = []
+    for face in detected_faces:
+        shape = shape_predictor(rgb_image, face)
+        encoding = face_rec_model.compute_face_descriptor(rgb_image, shape)
+        encodings.append(list(encoding))
+
+    if not encodings:
+        return
+
+    data = {}
+    if os.path.exists(ENCODINGS_FILE):
+        with open(ENCODINGS_FILE, 'r') as f:
+            data = json.load(f)
+
+    data[filename] = encodings
+    with open(ENCODINGS_FILE, 'w') as f:
+        json.dump(data, f)
+
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'image' not in request.files:
+        return "No file part", 400
+    file = request.files['image']
+    if file.filename == '':
+        return "No selected file", 400
+
+    file_path = save_uploaded_file(file)
+    extract_and_store_encodings(file_path, file.filename)
+
+    stats, error = process_image(file_path)
+    if error:
+        return error, 400
+
+    stats["filename"] = file.filename
+    return render_template('stats.html', stats=stats)
+
+
+@app.route('/upload-multiple', methods=['POST'])
+def upload_multiple():
+    if 'images' not in request.files:
+        return "No files part", 400
+    files = request.files.getlist('images')
+    if not files:
+        return "No selected files", 400
+
+    saved_files = []
+    for file in files:
+        if file.filename == '':
+            continue
+        path = save_uploaded_file(file)
+        extract_and_store_encodings(path, file.filename)
+        saved_files.append(file.filename)
+
+    return jsonify({"message": "Files uploaded successfully", "files": saved_files})
+
 
 def process_image(file_path):
     image = cv2.imread(file_path)
@@ -52,151 +120,86 @@ def process_image(file_path):
 
     height, width, channels = image.shape
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
     detected_faces = face_detector(rgb_image, 1)
-    face_encodings = []  # List to store face signatures
+    face_encodings = []
 
     for face in detected_faces:
-        x, y, w, h = (face.left(), face.top(), face.width(), face.height())
+        x, y, w, h = face.left(), face.top(), face.width(), face.height()
         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 3)
-
         shape = shape_predictor(rgb_image, face)
         encoding = face_rec_model.compute_face_descriptor(rgb_image, shape)
-        face_encodings.append(list(encoding))  # Convert encoding to a list for JSON serialization
-    
+        face_encodings.append(list(encoding))
+
     face_matched = False
     if len(face_encodings) == 2:
-        distance = np.linalg.norm(np.array(face_encodings[0]) - np.array(face_encodings[1]))
-        if distance < 0.6:  # Threshold (can vary)
-            print("Faces match!")
-            face_matched=True
-        else:
-            print("Faces do not match.")
-    # Convert the processed image to a base64 string
+        dist = np.linalg.norm(np.array(face_encodings[0]) - np.array(face_encodings[1]))
+        face_matched = dist < 0.6
+
     _, buffer = cv2.imencode('.jpg', image)
     image_blob = base64.b64encode(buffer).decode('utf-8')
-    # print(face_encodings)
 
     stats = {
         "dimensions": f"{width}x{height}",
         "channels": channels,
         "faces": len(detected_faces),
-        "face_signatures": len(face_encodings),  # Include face signatures in the stats
+        "face_signatures": len(face_encodings),
         "image_blob": image_blob,
         "face_matched": face_matched,
     }
     return stats, None
 
-def find_similar_images(reference_image_path, threshold=0.6):
-    """
-    Compare a reference image with all images in the uploads folder to find similar images.
-    :param reference_image_path: Path to the reference image.
-    :param threshold: Distance threshold for face similarity.
-    :return: List of similar image filenames.
-    """
-    reference_image = cv2.imread(reference_image_path)
-    if reference_image is None:
-        return "Invalid reference image file"
 
-    # Convert reference image to RGB and extract face encodings
-    reference_rgb = cv2.cvtColor(reference_image, cv2.COLOR_BGR2RGB)
-    detected_faces = face_detector(reference_rgb, 1)
-    if len(detected_faces) == 0:
-        return "No faces found in the reference image"
+def find_similar_images(reference_image_path, threshold=0.6):
+    image = cv2.imread(reference_image_path)
+    if image is None:
+        return []
+
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    detected_faces = face_detector(rgb_image, 1)
+    if not detected_faces:
+        return []
 
     reference_encodings = []
     for face in detected_faces:
-        shape = shape_predictor(reference_rgb, face)
-        encoding = face_rec_model.compute_face_descriptor(reference_rgb, shape)
+        shape = shape_predictor(rgb_image, face)
+        encoding = face_rec_model.compute_face_descriptor(rgb_image, shape)
         reference_encodings.append(np.array(encoding))
 
-    # Iterate through all images in the uploads folder
+    if not os.path.exists(ENCODINGS_FILE):
+        return []
+
+    with open(ENCODINGS_FILE, 'r') as f:
+        stored_data = json.load(f)
+
     similar_images = []
-    for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        if not os.path.isfile(file_path):
-            continue
-
-        # Process each image
-        image = cv2.imread(file_path)
-        if image is None:
-            continue
-
-        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        detected_faces = face_detector(rgb_image, 1)
-        for face in detected_faces:
-            shape = shape_predictor(rgb_image, face)
-            encoding = face_rec_model.compute_face_descriptor(rgb_image, shape)
-            encoding = np.array(encoding)
-
-            # Compare with reference encodings
-            for ref_encoding in reference_encodings:
-                distance = np.linalg.norm(ref_encoding - encoding)
-                if distance < threshold:
+    for filename, encs in stored_data.items():
+        for enc in encs:
+            arr = np.array(enc)
+            for ref_enc in reference_encodings:
+                if np.linalg.norm(ref_enc - arr) < threshold:
                     similar_images.append(filename)
                     break
-
     return similar_images
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    if 'image' not in request.files:
-        return "No file part"
-    file = request.files['image']
-    if file.filename == '':
-        return "No selected file"
-
-    file_path = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
-
-    stats, error = process_image(file_path)
-    if error:
-        return error
-
-    stats["filename"] = file.filename
-    return render_template('stats.html', stats=stats)
-
-@app.route('/upload-multiple', methods=['POST'])
-def upload_multiple():
-    if 'images' not in request.files:
-        return "No file part"
-    
-    files = request.files.getlist('images')
-    if not files:
-        return "No selected files"
-
-    saved_files = []
-    for file in files:
-        if file.filename == '':
-            continue
-        file_path = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
-        saved_files.append(file_path)
-
-    return jsonify({"message": "Files uploaded successfully", "files": saved_files})
 
 @app.route('/find-similar', methods=['POST'])
 def find_similar():
     if 'image' not in request.files:
-        return "No reference image provided"
-
+        return "No reference image provided", 400
     file = request.files['image']
     if file.filename == '':
-        return "No selected reference image"
+        return "No selected reference image", 400
 
-    # Save the reference image temporarily
-    reference_image_path = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+    ref_path = save_uploaded_file(file)
+    matches = find_similar_images(ref_path)
 
-    # Find similar images
-    similar_images = find_similar_images(reference_image_path)
+    blobs = []
+    for fname in matches:
+        path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
+        with open(path, 'rb') as f:
+            blobs.append(base64.b64encode(f.read()).decode('utf-8'))
 
-    # Convert similar images to base64 blobs for rendering
-    similar_image_blobs = []
-    for image_file in similar_images:
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file)
-        with open(file_path, "rb") as img_file:
-            image_blob = base64.b64encode(img_file.read()).decode('utf-8')
-            similar_image_blobs.append(image_blob)
-
-    return render_template('similar.html', similar_image_blobs=similar_image_blobs)
+    return render_template('similar.html', similar_image_blobs=blobs)
 
 if __name__ == '__main__':
     app.run(debug=True)

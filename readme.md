@@ -9,15 +9,7 @@ This project is a Flask-based web application for detecting faces in an uploaded
 - Simple and user-friendly web interface.
 
 ## Prerequisites
-- Python 3.7 or higher
-- `pip` (Python package manager)
-
-## Setup Instructions
-
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd Face_Search
+- Python 3.7 or highe Face_Search
 ```
 
 ### 2. Create and Activate a Virtual Environment

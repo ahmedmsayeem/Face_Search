@@ -1,6 +1,6 @@
 # Ignore virtual environment
-vvv/
-./vvv
+venv/
+./venv
 
 # Ignore Python cache files
 __pycache__/
@@ -8,6 +8,8 @@ __pycache__/
 *.pyo
 
 
+models/
+./models
 # Ignore uploads and temporary files
 uploads/
 *.log

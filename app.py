@@ -92,14 +92,20 @@ def upload_url():
     if error:
         return jsonify({"error": error}), 400
 
-    # Try to store encodings and check if faces were found
-    result = extract_and_store_encodings_to_file(file_path, filename, "url_encodings.json")
+    # Store encodings and the original URL
+    result = extract_and_store_encodings_to_file(file_path, filename, "url_encodings.json", image_url=image_url)
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
     if result == "no_faces":
         return jsonify({"error": "No faces found in the image"}), 400
     if result == "invalid_image":
         return jsonify({"error": "Downloaded file is not a valid image"}), 400
 
-    return jsonify({"message": "Image processed and encodings stored", "filename": filename})
+    return jsonify({"message": "Image processed and encodings stored", "filename": filename, "image_url": image_url})
 
 @app.route('/check-url-image', methods=['POST'])
 def check_url_image():
@@ -130,20 +136,23 @@ def check_url_image():
 
     threshold = 0.6
     matched_filenames = []
-    for fname, stored_encs in url_data.items():
-        for stored_enc in stored_encs:
+    matched_urls = []
+    for fname, entry in url_data.items():
+        encs = entry["encodings"] if isinstance(entry, dict) and "encodings" in entry else entry
+        url = entry.get("url") if isinstance(entry, dict) else None
+        for stored_enc in encs:
             for uploaded_enc in encodings:
                 dist = np.linalg.norm(np.array(uploaded_enc) - np.array(stored_enc))
                 if dist < threshold:
                     matched_filenames.append(fname)
+                    if url:
+                        matched_urls.append(url)
                     break
 
     if not matched_filenames:
         return jsonify({"match": False, "urls": []})
 
-    # If you have a mapping from filename to URL, you can return URLs here.
-    # For now, just return the filenames.
-    return jsonify({"match": True, "filenames": matched_filenames})
+    return jsonify({"match": True, "filenames": matched_filenames, "urls": matched_urls})
 
 @app.route('/check-url-image-by-url', methods=['POST'])
 def check_url_image_by_url():
@@ -158,6 +167,13 @@ def check_url_image_by_url():
 
     from face_utils import get_face_encodings_from_file
     encodings = get_face_encodings_from_file(file_path)
+    # Remove the downloaded file after extracting encodings
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
     if not encodings:
         return jsonify({"error": "No face found in downloaded image"}), 400
 
@@ -172,18 +188,24 @@ def check_url_image_by_url():
 
     threshold = 0.6
     matched_filenames = []
-    for fname, stored_encs in url_data.items():
-        for stored_enc in stored_encs:
+    matched_urls = []
+    for fname, entry in url_data.items():
+        encs = entry["encodings"] if isinstance(entry, dict) and "encodings" in entry else entry
+        url = entry.get("url") if isinstance(entry, dict) else None
+        for stored_enc in encs:
             for uploaded_enc in encodings:
                 dist = np.linalg.norm(np.array(uploaded_enc) - np.array(stored_enc))
                 if dist < threshold:
                     matched_filenames.append(fname)
+                    if url:
+                        matched_urls.append(url)
                     break
 
     if not matched_filenames:
-        return jsonify({"match": False, "filenames": []})
+        return jsonify({"match": False, "filenames": [], "urls": []})
 
-    return jsonify({"match": True, "filenames": matched_filenames})
+    return jsonify({"match": True, "filenames": matched_filenames, "urls": matched_urls})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
+

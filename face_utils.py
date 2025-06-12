@@ -38,7 +38,7 @@ def extract_and_store_encodings(file_path, filename):
     with open(ENCODINGS_FILE, 'w') as f:
         json.dump(data, f)
 
-def extract_and_store_encodings_to_file(file_path, filename, encodings_file):
+def extract_and_store_encodings_to_file(file_path, filename, encodings_file, image_url=None):
     print(f"Processing {filename} for encoding...")
     image = cv2.imread(file_path)
     print(f"Image shape: {image.shape if image is not None else 'None'}")
@@ -65,7 +65,12 @@ def extract_and_store_encodings_to_file(file_path, filename, encodings_file):
         with open(encodings_file, 'r') as f:
             data = json.load(f)
 
-    data[filename] = encodings
+    # Store both encodings and URL if provided
+    entry = {"encodings": encodings}
+    if image_url:
+        entry["url"] = image_url
+    data[filename] = entry
+
     with open(encodings_file, 'w') as f:
         json.dump(data, f)
 

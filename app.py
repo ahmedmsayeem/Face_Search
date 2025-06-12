@@ -1,24 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, jsonify
 import os
-import cv2
 import base64
-from io import BytesIO
-from PIL import Image
-import numpy as np
-import dlib
-import json
 
-ENCODINGS_FILE = "encodings.json"
-
-# Initialize dlib's face detector and shape predictor
-face_detector = dlib.get_frontal_face_detector()
-face_rec_model = dlib.face_recognition_model_v1(
-    "models/dlib_face_recognition_resnet_model_v1.dat"
+from face_utils import (
+    extract_and_store_encodings,
+    process_image,
+    find_similar_images,
+    face_detector,
+    face_rec_model,
+    shape_predictor,
+    extract_and_store_encodings_to_file,
 )
-shape_predictor = dlib.shape_predictor(
-    "models/shape_predictor_68_face_landmarks.dat"
-)
-
+from file_utils import save_uploaded_file, download_image_from_url
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -26,54 +19,17 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/')
 def home():
-    # Get all image filenames from the uploads folder
     image_files = [
         f for f in os.listdir(app.config['UPLOAD_FOLDER'])
         if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))
     ]
-
-    # Convert images to base64 blobs
     image_blobs = []
     for image_file in image_files:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file)
         with open(file_path, "rb") as img_file:
             blob = base64.b64encode(img_file.read()).decode('utf-8')
             image_blobs.append(blob)
-
     return render_template('index.html', image_blobs=image_blobs)
-
-
-def save_uploaded_file(file):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(file_path)
-    return file_path
-
-
-def extract_and_store_encodings(file_path, filename):
-    image = cv2.imread(file_path)
-    if image is None:
-        return
-
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    detected_faces = face_detector(rgb_image, 1)
-    encodings = []
-    for face in detected_faces:
-        shape = shape_predictor(rgb_image, face)
-        encoding = face_rec_model.compute_face_descriptor(rgb_image, shape)
-        encodings.append(list(encoding))
-
-    if not encodings:
-        return
-
-    data = {}
-    if os.path.exists(ENCODINGS_FILE):
-        with open(ENCODINGS_FILE, 'r') as f:
-            data = json.load(f)
-
-    data[filename] = encodings
-    with open(ENCODINGS_FILE, 'w') as f:
-        json.dump(data, f)
-
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -83,16 +39,13 @@ def upload():
     if file.filename == '':
         return "No selected file", 400
 
-    file_path = save_uploaded_file(file)
+    file_path = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
     extract_and_store_encodings(file_path, file.filename)
-
     stats, error = process_image(file_path)
     if error:
         return error, 400
-
     stats["filename"] = file.filename
     return render_template('stats.html', stats=stats)
-
 
 @app.route('/upload-multiple', methods=['POST'])
 def upload_multiple():
@@ -106,81 +59,10 @@ def upload_multiple():
     for file in files:
         if file.filename == '':
             continue
-        path = save_uploaded_file(file)
+        path = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
         extract_and_store_encodings(path, file.filename)
         saved_files.append(file.filename)
-
     return jsonify({"message": "Files uploaded successfully", "files": saved_files})
-
-
-def process_image(file_path):
-    image = cv2.imread(file_path)
-    if image is None:
-        return None, "Invalid image file"
-
-    height, width, channels = image.shape
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    detected_faces = face_detector(rgb_image, 1)
-    face_encodings = []
-
-    for face in detected_faces:
-        x, y, w, h = face.left(), face.top(), face.width(), face.height()
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 3)
-        shape = shape_predictor(rgb_image, face)
-        encoding = face_rec_model.compute_face_descriptor(rgb_image, shape)
-        face_encodings.append(list(encoding))
-
-    face_matched = False
-    if len(face_encodings) == 2:
-        dist = np.linalg.norm(np.array(face_encodings[0]) - np.array(face_encodings[1]))
-        face_matched = dist < 0.6
-
-    _, buffer = cv2.imencode('.jpg', image)
-    image_blob = base64.b64encode(buffer).decode('utf-8')
-
-    stats = {
-        "dimensions": f"{width}x{height}",
-        "channels": channels,
-        "faces": len(detected_faces),
-        "face_signatures": len(face_encodings),
-        "image_blob": image_blob,
-        "face_matched": face_matched,
-    }
-    return stats, None
-
-
-def find_similar_images(reference_image_path, threshold=0.6):
-    image = cv2.imread(reference_image_path)
-    if image is None:
-        return []
-
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    detected_faces = face_detector(rgb_image, 1)
-    if not detected_faces:
-        return []
-
-    reference_encodings = []
-    for face in detected_faces:
-        shape = shape_predictor(rgb_image, face)
-        encoding = face_rec_model.compute_face_descriptor(rgb_image, shape)
-        reference_encodings.append(np.array(encoding))
-
-    if not os.path.exists(ENCODINGS_FILE):
-        return []
-
-    with open(ENCODINGS_FILE, 'r') as f:
-        stored_data = json.load(f)
-
-    similar_images = []
-    for filename, encs in stored_data.items():
-        for enc in encs:
-            arr = np.array(enc)
-            for ref_enc in reference_encodings:
-                if np.linalg.norm(ref_enc - arr) < threshold:
-                    similar_images.append(filename)
-                    break
-    return similar_images
-
 
 @app.route('/find-similar', methods=['POST'])
 def find_similar():
@@ -190,16 +72,118 @@ def find_similar():
     if file.filename == '':
         return "No selected reference image", 400
 
-    ref_path = save_uploaded_file(file)
+    ref_path = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
     matches = find_similar_images(ref_path)
-
     blobs = []
     for fname in matches:
         path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
         with open(path, 'rb') as f:
             blobs.append(base64.b64encode(f.read()).decode('utf-8'))
-
     return render_template('similar.html', similar_image_blobs=blobs)
+
+@app.route('/upload-url', methods=['POST'])
+def upload_url():
+    data = request.get_json()
+    if not data or 'image_url' not in data:
+        return jsonify({"error": "Missing image_url"}), 400
+
+    image_url = data['image_url']
+    filename, file_path, error = download_image_from_url(image_url, app.config['UPLOAD_FOLDER'])
+    if error:
+        return jsonify({"error": error}), 400
+
+    # Try to store encodings and check if faces were found
+    result = extract_and_store_encodings_to_file(file_path, filename, "url_encodings.json")
+    if result == "no_faces":
+        return jsonify({"error": "No faces found in the image"}), 400
+    if result == "invalid_image":
+        return jsonify({"error": "Downloaded file is not a valid image"}), 400
+
+    return jsonify({"message": "Image processed and encodings stored", "filename": filename})
+
+@app.route('/check-url-image', methods=['POST'])
+def check_url_image():
+    if 'image' not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    # Save the uploaded image temporarily
+    temp_path = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+
+    # Extract encoding from uploaded image
+    from face_utils import get_face_encodings_from_file
+    encodings = get_face_encodings_from_file(temp_path)
+    if not encodings:
+        return jsonify({"error": "No face found in uploaded image"}), 400
+
+    # Load url_encodings.json and compare
+    import numpy as np
+    import json
+    url_encodings_file = "url_encodings.json"
+    if not os.path.exists(url_encodings_file):
+        return jsonify({"error": "No URL encodings found"}), 404
+
+    with open(url_encodings_file, 'r') as f:
+        url_data = json.load(f)
+
+    threshold = 0.6
+    matched_filenames = []
+    for fname, stored_encs in url_data.items():
+        for stored_enc in stored_encs:
+            for uploaded_enc in encodings:
+                dist = np.linalg.norm(np.array(uploaded_enc) - np.array(stored_enc))
+                if dist < threshold:
+                    matched_filenames.append(fname)
+                    break
+
+    if not matched_filenames:
+        return jsonify({"match": False, "urls": []})
+
+    # If you have a mapping from filename to URL, you can return URLs here.
+    # For now, just return the filenames.
+    return jsonify({"match": True, "filenames": matched_filenames})
+
+@app.route('/check-url-image-by-url', methods=['POST'])
+def check_url_image_by_url():
+    data = request.get_json()
+    if not data or 'image_url' not in data:
+        return jsonify({"error": "Missing image_url"}), 400
+
+    image_url = data['image_url']
+    filename, file_path, error = download_image_from_url(image_url, app.config['UPLOAD_FOLDER'])
+    if error:
+        return jsonify({"error": error}), 400
+
+    from face_utils import get_face_encodings_from_file
+    encodings = get_face_encodings_from_file(file_path)
+    if not encodings:
+        return jsonify({"error": "No face found in downloaded image"}), 400
+
+    import numpy as np
+    import json
+    url_encodings_file = "url_encodings.json"
+    if not os.path.exists(url_encodings_file):
+        return jsonify({"error": "No URL encodings found"}), 404
+
+    with open(url_encodings_file, 'r') as f:
+        url_data = json.load(f)
+
+    threshold = 0.6
+    matched_filenames = []
+    for fname, stored_encs in url_data.items():
+        for stored_enc in stored_encs:
+            for uploaded_enc in encodings:
+                dist = np.linalg.norm(np.array(uploaded_enc) - np.array(stored_enc))
+                if dist < threshold:
+                    matched_filenames.append(fname)
+                    break
+
+    if not matched_filenames:
+        return jsonify({"match": False, "filenames": []})
+
+    return jsonify({"match": True, "filenames": matched_filenames})
 
 if __name__ == '__main__':
     app.run(debug=True)

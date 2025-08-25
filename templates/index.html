@@ -4,82 +4,193 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FaceSearch</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'Inter', Arial, sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f4f4f4 100%);
+        }
+        .header {
+            width: 100vw;
+            background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%);
+            color: #fff;
+            padding: 30px 0 20px 0;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: 1px;
         }
         .container {
-            text-align: center;
             background: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
-            width: 100%;
-        }
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 20px;
-            color: #333;
+            padding: 32px 24px;
+            border-radius: 16px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+            max-width: 900px;
+            margin: 0 auto 40px auto;
         }
         h2 {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-            color: #555;
+            font-size: 1.35rem;
+            color: #374151;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        h5 {
+            color: #64748b;
+            font-weight: 400;
         }
         form {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             display: flex;
-            align-items: center; /* Align items vertically */
-            justify-content: center; /* Center the input and button */
-            gap: 10px; /* Add spacing between input and button */
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
         }
         .upload-btn {
-            padding: 10px 20px;
+            padding: 10px 24px;
             font-size: 1rem;
             color: #fff;
-            background-color: #007bff;
+            background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%);
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
         }
         .upload-btn:hover {
-            background-color: #0056b3;
+            background: linear-gradient(90deg, #60a5fa 0%, #6366f1 100%);
         }
         .multi-upload-section {
-            margin-top: 30px;
-            padding: 20px;
-            border-top: 1px solid #ddd;
+            margin-top: 18px;
+            padding: 18px;
+            border-top: 1px solid #e5e7eb;
         }
         .image-gallery {
-            margin-top: 30px;
+            margin-top: 32px;
+        }
+        .gallery-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 18px;
             justify-content: center;
         }
         .image-gallery img {
-            width: 150px;
-            height: 150px;
+            width: 140px;
+            height: 140px;
             object-fit: cover;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.09);
+            border: 2px solid #e0e7ff;
+            background: #f3f4f6;
         }
         input[type="file"] {
-            flex: 0; /* Prevent input from stretching */
+            flex: 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 7px 10px;
+            background: #f9fafb;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 12px 4px;
+            }
+            .gallery-grid img {
+                width: 90px;
+                height: 90px;
+            }
+        .gallery-slider {
+            display: flex;
+            overflow-x: auto;
+            gap: 12px;
+            padding-bottom: 8px;
+            scrollbar-width: thin;
+        }
+        .image-card {
+            min-width: 90px;
+            background: #f9fafb;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.09);
+            border: 2px solid #e0e7ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 4px 8px 4px;
+        }
+        .image-card img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+        .image-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .filename {
+            font-size: 0.8rem;
+            color: #374151;
+            margin-bottom: 2px;
+            word-break: break-all;
+            text-align: center;
+        }
+        .copy-link-btn {
+            padding: 3px 10px;
+            font-size: 0.8rem;
+            color: #fff;
+            background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .copy-link-btn:hover {
+            background: linear-gradient(90deg, #60a5fa 0%, #6366f1 100%);
+        }
+        .image-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .filename {
+            font-size: 0.95rem;
+            color: #374151;
+            margin-bottom: 2px;
+        }
+        .copy-link-btn {
+            padding: 5px 14px;
+            font-size: 0.95rem;
+            color: #fff;
+            background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .copy-link-btn:hover {
+            background: linear-gradient(90deg, #60a5fa 0%, #6366f1 100%);
+        }
+    
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>FaceSearch</h1>
+        <div style="font-size:1.1rem; font-weight:400; margin-top:8px; color:#e0e7ff;">Find, compare, and search faces in your image database</div>
+    </div>
     <div class="container">
-        <h1>Welcome to FaceSearch</h1>
-
+        
         <div class="multi-upload-section">
             <h2>Upload Images in Bulk</h2>
             <form action="/upload-multiple" method="post" enctype="multipart/form-data">
@@ -88,7 +199,18 @@
             </form>
         </div>
 
-        <div>
+        <div class="url-upload-section" style="margin-top: 18px; padding: 18px; border-top: 1px solid #e5e7eb;">
+            <h2>Upload Image by URL</h2>
+            <form id="url-upload-form" onsubmit="uploadImageByUrl(event)">
+                <input type="url" id="image-url-input" name="image_url" placeholder="Paste image URL here" style="width: 350px; padding: 7px 10px; border-radius: 6px; border: 1px solid #e5e7eb; background: #f9fafb;" required>
+                <button type="submit" class="upload-btn">Upload by URL</button>
+            </form>
+            <div id="url-upload-result" style="margin-top: 10px; color: #374151;"></div>
+        </div>
+
+           
+
+        <div style="margin-top: 18px; padding: 18px; border-top: 1px solid #e5e7eb;">
             <h2>Search for Similar Images</h2>
             <form action="/find-similar" method="post" enctype="multipart/form-data">
                 <input type="file" name="image" accept="image/*">
@@ -96,25 +218,150 @@
             </form>
         </div>
 
+        <div class="url-search-section" style="margin-top: 18px; padding: 18px; border-top: 1px solid #e5e7eb;">
+            <h2>Check URL-based Image Storage</h2>
+            <form id="url-search-form" onsubmit="searchUrlImage(event)">
+                <input type="url" id="search-image-url-input" name="search_image_url" placeholder="Paste image URL to check" style="width: 350px; padding: 7px 10px; border-radius: 6px; border: 1px solid #e5e7eb; background: #f9fafb;" required>
+                <button type="submit" class="upload-btn" >Search</button>
+            </form>
+            <div id="url-search-result" style="margin-top: 10px; color: #374151;"></div>
+            <div id="url-search-gallery" class="gallery-slider" style="margin-top:10px;"></div>
+        </div>
+
         <div>
-            <h2>Compare Two Faces in an Image  </h2>
+            <h2>Compare Two Faces in an Image</h2>
             <h5 style="display: inline;">(choose a picture with 2 faces)</h5>
-            
             <form action="/upload" method="post" enctype="multipart/form-data">
                 <input type="file" name="image" accept="image/*">
                 <button type="submit" class="upload-btn">Compare Faces</button>
             </form>
-            
         </div>
 
         <div class="image-gallery">
             <h2>Database Images</h2>
-            <div>
+            <div class="gallery-grid">
                 {% for image_blob in image_blobs %}
                     <img src="data:image/jpeg;base64,{{ image_blob }}" alt="Image">
                 {% endfor %}
             </div>
         </div>
+
+        <div class="image-gallery">
+            <h2>URL Uploaded Images</h2>
+            <div class="gallery-slider">
+                {% if url_image_blobs %}
+                    {% for image_blob in url_image_blobs %}
+                        <div class="image-card">
+                            <img src="data:image/jpeg;base64,{{ image_blob }}" alt="URL Image">
+                            <div class="image-info">
+                                <span class="filename">{{ url_image_filenames[loop.index0] if url_image_filenames else 'Image' }}</span>
+                                <button class="copy-link-btn" onclick="copyImageUrl(`{{ url_image_filenames[loop.index0] if url_image_filenames is defined and url_image_filenames else '' }}`)">Copy Link</button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="color:#64748b;">No images uploaded via URL yet.</div>
+                {% endif %}
+            </div>
+                </div>
     </div>
+
+<script>
+function copyImageUrl(filename) {
+    if (!filename) return;
+    // Assuming images are served from /uploads-link/<filename>
+    const url = window.location.origin + '/uploads-link/' + filename;
+    navigator.clipboard.writeText(url).then(function() {
+        alert('Image link copied to clipboard!');
+    }, function() {
+        alert('Failed to copy link.');
+    });
+}
+function uploadImageByUrl(event) {
+    event.preventDefault();
+    const urlInput = document.getElementById('image-url-input');
+    const resultDiv = document.getElementById('url-upload-result');
+    const imageUrl = urlInput.value;
+    resultDiv.textContent = 'Uploading...';
+    fetch('/upload-url', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ image_url: imageUrl })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            resultDiv.textContent = 'Error: ' + data.error;
+        } else {
+            resultDiv.textContent = 'Success! Image processed and encodings stored.';
+        }
+    })
+    .catch(err => {
+        resultDiv.textContent = 'Error uploading image.';
+    });
+}
+
+function searchUrlImage(event) {
+    event.preventDefault();
+    const urlInput = document.getElementById('search-image-url-input');
+    const resultDiv = document.getElementById('url-search-result');
+    const galleryDiv = document.getElementById('url-search-gallery');
+    const imageUrl = urlInput.value;
+    resultDiv.textContent = 'Checking...';
+    galleryDiv.innerHTML = '';
+    fetch('/check-url-image-by-url', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ image_url: imageUrl })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            resultDiv.textContent = 'Error: ' + data.error;
+        } else if (data.match && data.filenames && data.filenames.length) {
+            resultDiv.textContent = 'Match found!';
+            // Show matched images as cards
+            data.filenames.forEach(function(filename, idx) {
+                // Try to use the url if available, else fallback to /uploads-link/filename
+                let imgUrl = (data.urls && data.urls[idx]) ? data.urls[idx] : ('/uploads-link/' + filename);
+                let card = document.createElement('div');
+                card.className = 'image-card';
+                let img = document.createElement('img');
+                img.src = imgUrl;
+                img.alt = 'Matched Image';
+                let info = document.createElement('div');
+                info.className = 'image-info';
+                let fnameSpan = document.createElement('span');
+                fnameSpan.className = 'filename';
+                fnameSpan.textContent = filename;
+                let copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-link-btn';
+                copyBtn.textContent = 'Copy Link';
+                copyBtn.onclick = function() {
+                    navigator.clipboard.writeText(imgUrl).then(function() {
+                        alert('Image link copied to clipboard!');
+                    }, function() {
+                        alert('Failed to copy link.');
+                    });
+                };
+                info.appendChild(fnameSpan);
+                info.appendChild(copyBtn);
+                card.appendChild(img);
+                card.appendChild(info);
+                galleryDiv.appendChild(card);
+            });
+        } else {
+            resultDiv.textContent = 'No match found.';
+        }
+    })
+    .catch(err => {
+        resultDiv.textContent = 'Error checking image.';
+    });
+}
+</script>
 </body>
 </html>

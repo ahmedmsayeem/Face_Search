@@ -36,7 +36,7 @@ COPY . .
 RUN wget https://github.com/ageitgey/face_recognition_models/blob/master/face_recognition_models/models/dlib_face_recognition_resnet_model_v1.dat -O raw.html && \
     grep -o 'https://github.com/[^"]*raw[^"]*dlib_face_recognition_resnet_model_v1.dat' raw.html | head -n 1 | xargs wget -O models/dlib_face_recognition_resnet_model_v1.dat && \
     rm raw.html
-
+jsdsakjds
 # Expose Flask default port
 EXPOSE 5000
 

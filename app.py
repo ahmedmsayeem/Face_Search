@@ -17,19 +17,41 @@ UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+UPLOADS_LINK_FOLDER = 'uploads-link'
+os.makedirs(UPLOADS_LINK_FOLDER, exist_ok=True)
+app.config['UPLOADS_LINK_FOLDER'] = UPLOADS_LINK_FOLDER
+
 @app.route('/')
 def home():
     image_files = [
         f for f in os.listdir(app.config['UPLOAD_FOLDER'])
         if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))
     ]
+
     image_blobs = []
     for image_file in image_files:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file)
         with open(file_path, "rb") as img_file:
             blob = base64.b64encode(img_file.read()).decode('utf-8')
             image_blobs.append(blob)
-    return render_template('index.html', image_blobs=image_blobs)
+
+    # Load images from uploads-link folder
+    url_image_blobs = []
+    url_image_filenames = []
+    uploads_link_folder = app.config['UPLOADS_LINK_FOLDER']
+    if os.path.exists(uploads_link_folder):
+        url_image_files = [
+            f for f in os.listdir(uploads_link_folder)
+            if os.path.isfile(os.path.join(uploads_link_folder, f))
+        ]
+        for image_file in url_image_files:
+            file_path = os.path.join(uploads_link_folder, image_file)
+            with open(file_path, "rb") as img_file:
+                blob = base64.b64encode(img_file.read()).decode('utf-8')
+                url_image_blobs.append(blob)
+                url_image_filenames.append(image_file)
+
+    return render_template('index.html', image_blobs=image_blobs, url_image_blobs=url_image_blobs, url_image_filenames=url_image_filenames)
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -88,17 +110,22 @@ def upload_url():
         return jsonify({"error": "Missing image_url"}), 400
 
     image_url = data['image_url']
-    filename, file_path, error = download_image_from_url(image_url, app.config['UPLOAD_FOLDER'])
+    # Download to a temp location first
+    filename, temp_path, error = download_image_from_url(image_url, app.config['UPLOAD_FOLDER'])
     if error:
         return jsonify({"error": error}), 400
 
     # Store encodings and the original URL
-    result = extract_and_store_encodings_to_file(file_path, filename, "url_encodings.json", image_url=image_url)
-    if os.path.exists(file_path):
-        try:
-            os.remove(file_path)
-        except Exception:
-            pass
+    result = extract_and_store_encodings_to_file(temp_path, filename, "url_encodings.json", image_url=image_url)
+
+    # Move the image to uploads-link folder for display
+    import shutil
+    link_dest_path = os.path.join(app.config['UPLOADS_LINK_FOLDER'], filename)
+    try:
+        shutil.move(temp_path, link_dest_path)
+    except Exception:
+        # If move fails, just keep the temp file
+        link_dest_path = temp_path
 
     if result == "no_faces":
         return jsonify({"error": "No faces found in the image"}), 400

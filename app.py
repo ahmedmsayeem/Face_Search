@@ -78,17 +78,30 @@ def upload():
 @app.route('/upload-multiple', methods=['POST'])
 def upload_multiple():
     if 'images' not in request.files:
-        return "No files part", 400
+        return jsonify({"error": "No files part"}), 400
     files = request.files.getlist('images')
     if not files:
-        return "No selected files", 400
+        return jsonify({"error": "No selected files"}), 400
+
+    category_name = request.form.get('category')
+    category_id = None
+    if category_name:
+        conn = sqlite3.connect('face_search.db')
+        c = conn.cursor()
+        c.execute("SELECT id FROM categories WHERE name = ?", (category_name,))
+        row = c.fetchone()
+        if row:
+            category_id = row[0]
+        conn.close()
 
     saved_files = []
     for file in files:
         if file.filename == '':
             continue
         path = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
-        extract_and_store_encodings(path, file.filename)
+        # Pass category_id to extract_and_store_encodings if needed
+        # If your function doesn't support category_id, you may need to update it
+        extract_and_store_encodings(path, file.filename, category_id=category_id)
         saved_files.append(file.filename)
     return jsonify({"message": "Files uploaded successfully", "files": saved_files})
 
@@ -271,7 +284,7 @@ def check_image_by_url():
     if not matched_filenames:
         return jsonify({"match": False, "urls": [], "filenames": []})
 
-    return jsonify({"match": True, "urls": matched_urls})
+    return jsonify({"match": True, "urls": matched_urls, "filenames": matched_filenames})
 
 
 @app.route('/add-category', methods=['POST'])
@@ -289,6 +302,33 @@ def add_category():
     conn.close()
 
     return jsonify({"message": "Category added successfully"}), 201
+
+@app.route('/get-categories-images', methods=['GET'])
+def get_categories_images():
+    import sqlite3
+    conn = sqlite3.connect('face_search.db')
+    c = conn.cursor()
+    # Get all categories
+    c.execute("SELECT id, name FROM categories")
+    categories = c.fetchall()
+    result = []
+    for cat_id, cat_name in categories:
+        # Get images for this category (only 'link' column exists)
+        c.execute("SELECT id, link FROM images WHERE category_id = ?", (cat_id,))
+        images = c.fetchall()
+        images_list = []
+        for img_id, link in images:
+            images_list.append({
+                "id": img_id,
+                "link": link
+            })
+        result.append({
+            "id": cat_id,
+            "name": cat_name,
+            "images": images_list
+        })
+    conn.close()
+    return jsonify({"categories": result})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

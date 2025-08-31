@@ -190,19 +190,26 @@
         <div style="font-size:1.1rem; font-weight:400; margin-top:8px; color:#e0e7ff;">Find, compare, and search faces in your image database</div>
     </div>
     <div class="container">
-        
-        <div class="multi-upload-section">
-            <h2>Upload Images in Bulk</h2>
-            <form action="/upload-multiple" method="post" enctype="multipart/form-data">
-                <input type="file" name="images" accept="image/*" multiple>
-                <button type="submit" class="upload-btn">Upload Images</button>
+        <!-- Create New Category Section -->
+        <div class="multi-upload-section" style="margin-bottom:18px;">
+            <h2>Create New Category</h2>
+            <form id="create-category-form" style="gap:8px;">
+                <input type="text" id="new-category-input" name="new_category" placeholder="Enter new category name" style="padding:7px 10px; border-radius:6px; border:1px solid #e5e7eb; background:#f9fafb;">
+                <button type="submit" class="upload-btn">Add Category</button>
             </form>
+            <div id="create-category-result" style="margin-top:8px; color:#374151;"></div>
         </div>
+
+        
 
         <div class="url-upload-section" style="margin-top: 18px; padding: 18px; border-top: 1px solid #e5e7eb;">
             <h2>Upload Image by URL</h2>
             <form id="url-upload-form" onsubmit="uploadImageByUrl(event)">
                 <input type="url" id="image-url-input" name="image_url" placeholder="Paste image URL here" style="width: 350px; padding: 7px 10px; border-radius: 6px; border: 1px solid #e5e7eb; background: #f9fafb;" required>
+                <select id="url-upload-category-select" name="category" style="padding:7px 10px; border-radius:6px; border:1px solid #e5e7eb; background:#f9fafb;">
+                    <option value="">None</option>
+                </select>
+                <input type="text" id="url-upload-new-category-input" placeholder="Or type new category" style="padding:7px 10px; border-radius:6px; border:1px solid #e5e7eb; background:#f9fafb;">
                 <button type="submit" class="upload-btn">Upload by URL</button>
             </form>
             <div id="url-upload-result" style="margin-top: 10px; color: #374151;"></div>
@@ -210,60 +217,64 @@
 
            
 
-        <div style="margin-top: 18px; padding: 18px; border-top: 1px solid #e5e7eb;">
-            <h2>Search for Similar Images</h2>
-            <form action="/find-similar" method="post" enctype="multipart/form-data">
-                <input type="file" name="image" accept="image/*">
-                <button type="submit" class="upload-btn">Search</button>
-            </form>
-        </div>
+            <!-- <div style="margin-top: 18px; padding: 18px; border-top: 1px solid #e5e7eb;">
+                <h2>Search for Similar Images</h2>
+                <form action="/find-similar" method="post" enctype="multipart/form-data">
+                    <input type="file" name="image" accept="image/*">
+                    <button type="submit" class="upload-btn">Search</button>
+                </form>
+            </div> -->
 
         <div class="url-search-section" style="margin-top: 18px; padding: 18px; border-top: 1px solid #e5e7eb;">
             <h2>Check URL-based Image Storage</h2>
             <form id="url-search-form" onsubmit="searchUrlImage(event)">
                 <input type="url" id="search-image-url-input" name="search_image_url" placeholder="Paste image URL to check" style="width: 350px; padding: 7px 10px; border-radius: 6px; border: 1px solid #e5e7eb; background: #f9fafb;" required>
+                <select id="search-category-select" name="category" style="padding:7px 10px; border-radius:6px; border:1px solid #e5e7eb; background:#f9fafb;">
+                    <option value="">None</option>
+                </select>
+                <input type="text" id="search-new-category-input" placeholder="Or type new category" style="padding:7px 10px; border-radius:6px; border:1px solid #e5e7eb; background:#f9fafb;">
                 <button type="submit" class="upload-btn" >Search</button>
             </form>
             <div id="url-search-result" style="margin-top: 10px; color: #374151;"></div>
             <div id="url-search-gallery" class="gallery-slider" style="margin-top:10px;"></div>
         </div>
 
-        <div>
+        <!-- <div>
             <h2>Compare Two Faces in an Image</h2>
             <h5 style="display: inline;">(choose a picture with 2 faces)</h5>
             <form action="/upload" method="post" enctype="multipart/form-data">
                 <input type="file" name="image" accept="image/*">
                 <button type="submit" class="upload-btn">Compare Faces</button>
             </form>
-        </div>
+        </div> -->
 
-        <div class="image-gallery">
-            <h2>Database Images</h2>
-            <div class="gallery-grid">
-                {% for image_blob in image_blobs %}
-                    <img src="data:image/jpeg;base64,{{ image_blob }}" alt="Image">
-                {% endfor %}
+        <div class="multi-upload-section">
+            <button type="button" id="toggle-bulk-upload" style="padding:10px 24px; border-radius:8px; border:1px solid #e5e7eb; background:#e0e7ff; color:#374151; font-weight:600; margin-bottom:8px;">
+                Upload Images in Bulk (beta)
+            </button>
+            <div id="bulk-upload-container" style="display:none;">
+                <h2>Upload Images in Bulk</h2>
+                <form id="bulk-upload-form" enctype="multipart/form-data">
+                    <input type="file" name="images" accept="image/*" multiple>
+                    <button type="button" id="toggle-bulk-category" style="padding:7px 14px; border-radius:6px; border:1px solid #e5e7eb; background:#e0e7ff; color:#374151; font-weight:500;">Choose Category (beta)</button>
+                    <div id="bulk-category-container" style="display:none; flex-direction:column; gap:8px; margin-top:8px;">
+                        <select id="bulk-category-select" name="category" style="padding:7px 10px; border-radius:6px; border:1px solid #e5e7eb; background:#f9fafb;">
+                            <option value="">None</option>
+                        </select>
+                        <input type="text" id="bulk-new-category-input" placeholder="Or type new category" style="padding:7px 10px; border-radius:6px; border:1px solid #e5e7eb; background:#f9fafb;">
+                    </div>
+                    <button type="submit" class="upload-btn">Upload Images</button>
+                </form>
+                <div id="bulk-upload-result" style="margin-top:10px; color:#374151;"></div>
             </div>
         </div>
 
-        <div class="image-gallery">
-            <h2>URL Uploaded Images</h2>
-            <div class="gallery-slider">
-                {% if url_image_blobs %}
-                    {% for image_blob in url_image_blobs %}
-                        <div class="image-card">
-                            <img src="data:image/jpeg;base64,{{ image_blob }}" alt="URL Image">
-                            <div class="image-info">
-                                <!-- <span class="filename">{{ url_image_filenames[loop.index0] if url_image_filenames else 'Image' }}</span> -->
-                                <!-- <button class="copy-link-btn" onclick="copyImageUrl(`{{ url_image_filenames[loop.index0] if url_image_filenames is defined and url_image_filenames else '' }}`)">Copy Link</button> -->
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div style="color:#64748b;">No images uploaded via URL yet.</div>
-                {% endif %}
-            </div>
-                </div>
+        <!-- Category Gallery Section -->
+        <div class="image-gallery" id="category-gallery-section">
+            <h2>Database Images by Category</h2>
+            <div id="category-tabs" style="display:flex; gap:12px; margin-bottom:18px;"></div>
+            <div id="category-gallery" class="gallery-grid"></div>
+        </div>
     </div>
 
 <script>
@@ -277,18 +288,64 @@ function copyImageUrl(filename) {
         alert('Failed to copy link.');
     });
 }
+
+// Populate category dropdown for URL upload
+function populateUrlUploadCategorySelect() {
+    fetch('/get-categories-images')
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById('url-upload-category-select');
+            select.innerHTML = '<option value="">None</option>';
+            (data.categories || []).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.name;
+                opt.textContent = cat.name;
+                select.appendChild(opt);
+            });
+        });
+}
+document.addEventListener('DOMContentLoaded', populateUrlUploadCategorySelect);
+
+// Handle upload by URL with category (existing or new)
 function uploadImageByUrl(event) {
     event.preventDefault();
     const urlInput = document.getElementById('image-url-input');
+    const categorySelect = document.getElementById('url-upload-category-select');
+    const newCatInput = document.getElementById('url-upload-new-category-input');
     const resultDiv = document.getElementById('url-upload-result');
     const imageUrl = urlInput.value;
+    let category = categorySelect.value;
+    const newCategory = newCatInput.value.trim();
+    if (newCategory) category = newCategory;
     resultDiv.textContent = 'Uploading...';
+
+    // If new category, add it first
+    if (newCategory) {
+        fetch('/add-category', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: newCategory})
+        })
+        .then(res => res.json())
+        .then(() => {
+            populateUrlUploadCategorySelect();
+            doUploadImageByUrl(imageUrl, category, resultDiv);
+        })
+        .catch(() => {
+            resultDiv.textContent = 'Error adding category.';
+        });
+    } else {
+        doUploadImageByUrl(imageUrl, category, resultDiv);
+    }
+}
+
+function doUploadImageByUrl(imageUrl, category, resultDiv) {
     fetch('/upload-url', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ image_url: imageUrl })
+        body: JSON.stringify({ image_url: imageUrl, category: category })
     })
     .then(response => response.json())
     .then(data => {
@@ -306,17 +363,44 @@ function uploadImageByUrl(event) {
 function searchUrlImage(event) {
     event.preventDefault();
     const urlInput = document.getElementById('search-image-url-input');
+    const categorySelect = document.getElementById('search-category-select');
+    const newCatInput = document.getElementById('search-new-category-input');
     const resultDiv = document.getElementById('url-search-result');
     const galleryDiv = document.getElementById('url-search-gallery');
     const imageUrl = urlInput.value;
+    let category = categorySelect.value;
+    const newCategory = newCatInput.value.trim();
+    if (newCategory) category = newCategory;
     resultDiv.textContent = 'Checking...';
     galleryDiv.innerHTML = '';
-    fetch('/check-url-image-by-url', {
+
+    // If new category, add it first
+    if (newCategory) {
+        fetch('/add-category', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: newCategory})
+        })
+        .then(res => res.json())
+        .then(() => {
+            populateSearchCategorySelect();
+            doSearchUrlImage(imageUrl, category, resultDiv, galleryDiv);
+        })
+        .catch(() => {
+            resultDiv.textContent = 'Error adding category.';
+        });
+    } else {
+        doSearchUrlImage(imageUrl, category, resultDiv, galleryDiv);
+    }
+}
+
+function doSearchUrlImage(imageUrl, category, resultDiv, galleryDiv) {
+    fetch('/check-image-by-url', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ image_url: imageUrl })
+        body: JSON.stringify({ image_url: imageUrl, category: category })
     })
     .then(response => response.json())
     .then(data => {
@@ -326,7 +410,6 @@ function searchUrlImage(event) {
             resultDiv.textContent = 'Match found!';
             // Show matched images as cards
             data.filenames.forEach(function(filename, idx) {
-                // Try to use the url if available, else fallback to /uploads-link/filename
                 let imgUrl = (data.urls && data.urls[idx]) ? data.urls[idx] : ('/uploads-link/' + filename);
                 let card = document.createElement('div');
                 card.className = 'image-card';
@@ -362,6 +445,208 @@ function searchUrlImage(event) {
         resultDiv.textContent = 'Error checking image.';
     });
 }
+
+// CATEGORY GALLERY LOGIC
+let categoriesData = [];
+let selectedCategoryIdx = 0;
+
+function fetchCategoriesAndImages() {
+    fetch('/get-categories-images')
+        .then(res => res.json())
+        .then(data => {
+            categoriesData = data.categories || [];
+            renderCategoryTabs();
+            renderCategoryGallery();
+        });
+}
+
+function renderCategoryTabs() {
+    const tabsDiv = document.getElementById('category-tabs');
+    tabsDiv.innerHTML = '';
+    categoriesData.forEach((cat, idx) => {
+        const btn = document.createElement('button');
+        btn.textContent = cat.name;
+        btn.className = 'upload-btn';
+        btn.style.background = idx === selectedCategoryIdx ? 'linear-gradient(90deg, #6366f1 0%, #60a5fa 100%)' : '#e0e7ff';
+        btn.style.color = idx === selectedCategoryIdx ? '#fff' : '#374151';
+        btn.onclick = () => {
+            selectedCategoryIdx = idx;
+            renderCategoryTabs();
+            renderCategoryGallery();
+        };
+        tabsDiv.appendChild(btn);
+    });
+}
+
+function renderCategoryGallery() {
+    const galleryDiv = document.getElementById('category-gallery');
+    galleryDiv.innerHTML = '';
+    if (!categoriesData.length) {
+        galleryDiv.innerHTML = '<div style="color:#64748b;">No categories found.</div>';
+        return;
+    }
+    const images = categoriesData[selectedCategoryIdx].images || [];
+    if (!images.length) {
+        galleryDiv.innerHTML = '<div style="color:#64748b;">No images in this category.</div>';
+        return;
+    }
+    images.forEach(img => {
+        let imgSrc = '';
+        if (img.link && img.link.startsWith('http')) {
+            imgSrc = img.link;
+        } else if (img.link) {
+            // If local file, serve from /uploads-link/ (for URL uploads) or /uploads/
+            // You may want to distinguish, but here we default to /uploads-link/
+            imgSrc = '/uploads-link/' + img.link;
+        }
+        const imgElem = document.createElement('img');
+        imgElem.src = imgSrc;
+        imgElem.alt = img.link || 'Image';
+        galleryDiv.appendChild(imgElem);
+    });
+}
+
+// Create new category logic
+document.getElementById('create-category-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const input = document.getElementById('new-category-input');
+    const resultDiv = document.getElementById('create-category-result');
+    const name = input.value.trim();
+    if (!name) {
+        resultDiv.textContent = 'Please enter a category name.';
+        return;
+    }
+    resultDiv.textContent = 'Adding...';
+    fetch('/add-category', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            resultDiv.textContent = 'Error: ' + data.error;
+        } else {
+            resultDiv.textContent = 'Category added!';
+            input.value = '';
+            populateBulkCategorySelect();
+            fetchCategoriesAndImages();
+        }
+    })
+    .catch(() => {
+        resultDiv.textContent = 'Error adding category.';
+    });
+});
+
+// Populate category dropdown for bulk upload
+function populateBulkCategorySelect() {
+    fetch('/get-categories-images')
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById('bulk-category-select');
+            select.innerHTML = '<option value="">None</option>';
+            (data.categories || []).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.name;
+                opt.textContent = cat.name;
+                select.appendChild(opt);
+            });
+        });
+}
+document.addEventListener('DOMContentLoaded', populateBulkCategorySelect);
+
+// Populate category dropdown for URL search
+function populateSearchCategorySelect() {
+    fetch('/get-categories-images')
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById('search-category-select');
+            select.innerHTML = '<option value="">None</option>';
+            (data.categories || []).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.name;
+                opt.textContent = cat.name;
+                select.appendChild(opt);
+            });
+        });
+}
+document.addEventListener('DOMContentLoaded', populateSearchCategorySelect);
+
+// Handle bulk upload with category (existing or new)
+document.getElementById('bulk-upload-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const filesInput = form.querySelector('input[type="file"]');
+    const select = form.querySelector('select[name="category"]');
+    const newCatInput = document.getElementById('bulk-new-category-input');
+    const resultDiv = document.getElementById('bulk-upload-result');
+    const files = filesInput.files;
+    let category = select.value;
+    const newCategory = newCatInput.value.trim();
+    if (newCategory) category = newCategory;
+    if (!files.length) {
+        resultDiv.textContent = 'Please select images to upload.';
+        return;
+    }
+    if (newCategory) {
+        // Add new category first
+        fetch('/add-category', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: newCategory})
+        })
+        .then(res => res.json())
+        .then(() => {
+            populateBulkCategorySelect();
+            doBulkUpload(files, category, resultDiv);
+        })
+        .catch(() => {
+            resultDiv.textContent = 'Error adding category.';
+        });
+    } else {
+        doBulkUpload(files, category, resultDiv);
+    }
+});
+
+function doBulkUpload(files, category, resultDiv) {
+    resultDiv.textContent = 'Uploading...';
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+        formData.append('images', files[i]);
+    }
+    formData.append('category', category);
+    fetch('/upload-multiple', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            resultDiv.textContent = 'Error: ' + data.error;
+        } else {
+            resultDiv.textContent = 'Success! Uploaded: ' + (data.files || []).join(', ');
+            fetchCategoriesAndImages();
+        }
+    })
+    .catch(() => {
+        resultDiv.textContent = 'Error uploading images.';
+    });
+}
+
+// On page load, fetch categories/images
+document.addEventListener('DOMContentLoaded', fetchCategoriesAndImages);
+
+// Toggle bulk upload section
+document.getElementById('toggle-bulk-upload').addEventListener('click', function() {
+    const container = document.getElementById('bulk-upload-container');
+    container.style.display = (container.style.display === 'none' || !container.style.display) ? 'block' : 'none';
+});
+
+// Toggle bulk category dropdown (beta)
+document.getElementById('toggle-bulk-category').addEventListener('click', function() {
+    const container = document.getElementById('bulk-category-container');
+    container.style.display = (container.style.display === 'none' || !container.style.display) ? 'flex' : 'none';
+});
 </script>
 </body>
 </html>

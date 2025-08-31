@@ -20,7 +20,7 @@ shape_predictor = dlib.shape_predictor(
     "models/shape_predictor_68_face_landmarks.dat"
 )
 
-def extract_and_store_encodings(file_path, filename):
+def extract_and_store_encodings(file_path, filename, category_id=None):
     image = cv2.imread(file_path)
     if image is None:
         return
@@ -41,6 +41,18 @@ def extract_and_store_encodings(file_path, filename):
     data[filename] = encodings
     with open(ENCODINGS_FILE, 'w') as f:
         json.dump(data, f)
+
+    import sqlite3
+    conn = sqlite3.connect('face_search.db')
+    c = conn.cursor()
+    # Store image with category_id if provided
+    encoding_blob = json.dumps(encodings)
+    c.execute(
+        "INSERT INTO images (link, category_id, encoding) VALUES (?, ?, ?)",
+        (filename, category_id, encoding_blob)
+    )
+    conn.commit()
+    conn.close()
 
 def extract_and_store_encodings_to_file(file_path, filename, encodings_file, image_url=None, category=None):
     print(f"Processing {filename} for encoding...")

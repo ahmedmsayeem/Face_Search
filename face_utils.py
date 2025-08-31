@@ -4,6 +4,10 @@ import base64
 import numpy as np
 import dlib
 import json
+import sqlite3
+
+
+
 
 ENCODINGS_FILE = "encodings.json"
 
@@ -38,7 +42,7 @@ def extract_and_store_encodings(file_path, filename):
     with open(ENCODINGS_FILE, 'w') as f:
         json.dump(data, f)
 
-def extract_and_store_encodings_to_file(file_path, filename, encodings_file, image_url=None):
+def extract_and_store_encodings_to_file(file_path, filename, encodings_file, image_url=None, category=None):
     print(f"Processing {filename} for encoding...")
     image = cv2.imread(file_path)
     print(f"Image shape: {image.shape if image is not None else 'None'}")
@@ -70,6 +74,27 @@ def extract_and_store_encodings_to_file(file_path, filename, encodings_file, ima
     if image_url:
         entry["url"] = image_url
     data[filename] = entry
+
+    # Store in SQLite images table
+    conn = sqlite3.connect('face_search.db')
+    c = conn.cursor()
+    category_id = None
+    if category:
+        c.execute("SELECT id FROM categories WHERE name = ?", (category,))
+        row = c.fetchone()
+        if row:
+            category_id = row[0]
+        else:
+            # Optionally, create the category if it doesn't exist
+            c.execute("INSERT INTO categories (name) VALUES (?)", (category,))
+            category_id = c.lastrowid
+
+    c.execute(
+        "INSERT INTO images (link, category_id, encoding) VALUES (?, ?, ?)",
+        (image_url, category_id, json.dumps(encodings))
+    )
+    conn.commit()
+    conn.close()
 
     with open(encodings_file, 'w') as f:
         json.dump(data, f)

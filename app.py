@@ -1,6 +1,9 @@
+import json
 from flask import Flask, render_template, request, jsonify
 import os
 import base64
+import sqlite3
+
 
 from face_utils import (
     extract_and_store_encodings,
@@ -20,6 +23,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 UPLOADS_LINK_FOLDER = 'uploads-link'
 os.makedirs(UPLOADS_LINK_FOLDER, exist_ok=True)
 app.config['UPLOADS_LINK_FOLDER'] = UPLOADS_LINK_FOLDER
+
+conn = sqlite3.connect('face_search.db')
+c = conn.cursor()
 
 @app.route('/')
 def home():
@@ -110,22 +116,23 @@ def upload_url():
         return jsonify({"error": "Missing image_url"}), 400
 
     image_url = data['image_url']
+    category = data.get('category')
+
+    print(image_url, category)
+
     # Download to a temp location first
     filename, temp_path, error = download_image_from_url(image_url, app.config['UPLOAD_FOLDER'])
     if error:
         return jsonify({"error": error}), 400
 
     # Store encodings and the original URL
-    result = extract_and_store_encodings_to_file(temp_path, filename, "url_encodings.json", image_url=image_url)
+    result = extract_and_store_encodings_to_file(temp_path, filename, "url_encodings.json", image_url=image_url, category=category)
 
     # Move the image to uploads-link folder for display
-    import shutil
-    link_dest_path = os.path.join(app.config['UPLOADS_LINK_FOLDER'], filename)
     try:
-        shutil.move(temp_path, link_dest_path)
+        os.remove(temp_path)
     except Exception:
-        # If move fails, just keep the temp file
-        link_dest_path = temp_path
+        pass
 
     if result == "no_faces":
         return jsonify({"error": "No faces found in the image"}), 400
@@ -142,6 +149,8 @@ def check_url_image():
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
 
+    category = request.form.get('category')  # Get category from form-data
+
     # Save the uploaded image temporarily
     temp_path = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
 
@@ -151,29 +160,42 @@ def check_url_image():
     if not encodings:
         return jsonify({"error": "No face found in uploaded image"}), 400
 
-    # Load url_encodings.json and compare
     import numpy as np
-    import json
-    url_encodings_file = "url_encodings.json"
-    if not os.path.exists(url_encodings_file):
-        return jsonify({"error": "No URL encodings found"}), 404
-
-    with open(url_encodings_file, 'r') as f:
-        url_data = json.load(f)
-
+    import sqlite3
     threshold = 0.6
     matched_filenames = []
     matched_urls = []
-    for fname, entry in url_data.items():
-        encs = entry["encodings"] if isinstance(entry, dict) and "encodings" in entry else entry
-        url = entry.get("url") if isinstance(entry, dict) else None
-        for stored_enc in encs:
+
+    conn = sqlite3.connect('face_search.db')
+    c = conn.cursor()
+
+    # If category is provided, filter by category
+    if category:
+        c.execute("""
+            SELECT images.link, images.encoding, categories.name
+            FROM images
+            JOIN categories ON images.category_id = categories.id
+            WHERE categories.name = ?
+        """, (category,))
+    else:
+        c.execute("SELECT link, encoding FROM images")
+
+    rows = c.fetchall()
+    conn.close()
+
+    for row in rows:
+        url = row[0]
+        encoding_blob = row[1]
+        try:
+            stored_encs = json.loads(encoding_blob)
+        except Exception:
+            continue
+        for stored_enc in stored_encs:
             for uploaded_enc in encodings:
                 dist = np.linalg.norm(np.array(uploaded_enc) - np.array(stored_enc))
                 if dist < threshold:
-                    matched_filenames.append(fname)
-                    if url:
-                        matched_urls.append(url)
+                    matched_filenames.append(url)
+                    matched_urls.append(url)
                     break
 
     if not matched_filenames:
@@ -181,20 +203,23 @@ def check_url_image():
 
     return jsonify({"match": True, "filenames": matched_filenames, "urls": matched_urls})
 
-@app.route('/check-url-image-by-url', methods=['POST'])
-def check_url_image_by_url():
+
+@app.route('/check-image-by-url', methods=['POST'])
+def check_image_by_url():
     data = request.get_json()
     if not data or 'image_url' not in data:
         return jsonify({"error": "Missing image_url"}), 400
 
     image_url = data['image_url']
+    category = data.get('category')  # Optional category filter
+
     filename, file_path, error = download_image_from_url(image_url, app.config['UPLOAD_FOLDER'])
     if error:
         return jsonify({"error": error}), 400
 
     from face_utils import get_face_encodings_from_file
     encodings = get_face_encodings_from_file(file_path)
-    # Remove the downloaded file after extracting encodings
+    # Remove downloaded file after extraction
     if os.path.exists(file_path):
         try:
             os.remove(file_path)
@@ -205,34 +230,69 @@ def check_url_image_by_url():
         return jsonify({"error": "No face found in downloaded image"}), 400
 
     import numpy as np
-    import json
-    url_encodings_file = "url_encodings.json"
-    if not os.path.exists(url_encodings_file):
-        return jsonify({"error": "No URL encodings found"}), 404
-
-    with open(url_encodings_file, 'r') as f:
-        url_data = json.load(f)
-
+    import sqlite3
     threshold = 0.6
     matched_filenames = []
     matched_urls = []
-    for fname, entry in url_data.items():
-        encs = entry["encodings"] if isinstance(entry, dict) and "encodings" in entry else entry
-        url = entry.get("url") if isinstance(entry, dict) else None
-        for stored_enc in encs:
+
+    conn = sqlite3.connect('face_search.db')
+    c = conn.cursor()
+
+    # Category filtering, if provided
+    if category:
+        c.execute("""
+            SELECT images.link, images.encoding, categories.name
+            FROM images
+            JOIN categories ON images.category_id = categories.id
+            WHERE categories.name = ?
+        """, (category,))
+    else:
+        c.execute("SELECT link, encoding FROM images")
+
+    rows = c.fetchall()
+    conn.close()
+
+    for row in rows:
+        url = row[0]
+        encoding_blob = row[1]
+        try:
+            stored_encs = json.loads(encoding_blob)
+        except Exception:
+            continue
+        for stored_enc in stored_encs:
             for uploaded_enc in encodings:
                 dist = np.linalg.norm(np.array(uploaded_enc) - np.array(stored_enc))
+                print(f"Distance between encodings: {dist}")
                 if dist < threshold:
-                    matched_filenames.append(fname)
-                    if url:
-                        matched_urls.append(url)
+                    matched_filenames.append(url)
+                    matched_urls.append(url)
                     break
 
     if not matched_filenames:
-        return jsonify({"match": False, "filenames": [], "urls": []})
+        return jsonify({"match": False, "urls": [], "filenames": []})
 
-    return jsonify({"match": True, "filenames": matched_filenames, "urls": matched_urls})
+    return jsonify({"match": True, "urls": matched_urls})
+
+
+@app.route('/add-category', methods=['POST'])
+def add_category():
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({"error": "Missing category name"}), 400
+
+    category_name = data['name']
+
+    conn = sqlite3.connect('face_search.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO categories (name) VALUES (?)", (category_name,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Category added successfully"}), 201
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
+
+
+
 

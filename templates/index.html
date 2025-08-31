@@ -254,8 +254,8 @@
                         <div class="image-card">
                             <img src="data:image/jpeg;base64,{{ image_blob }}" alt="URL Image">
                             <div class="image-info">
-                                <span class="filename">{{ url_image_filenames[loop.index0] if url_image_filenames else 'Image' }}</span>
-                                <button class="copy-link-btn" onclick="copyImageUrl(`{{ url_image_filenames[loop.index0] if url_image_filenames is defined and url_image_filenames else '' }}`)">Copy Link</button>
+                                <!-- <span class="filename">{{ url_image_filenames[loop.index0] if url_image_filenames else 'Image' }}</span> -->
+                                <!-- <button class="copy-link-btn" onclick="copyImageUrl(`{{ url_image_filenames[loop.index0] if url_image_filenames is defined and url_image_filenames else '' }}`)">Copy Link</button> -->
                             </div>
                         </div>
                     {% endfor %}

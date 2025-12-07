@@ -12,7 +12,45 @@ A Flask-based REST API for face detection and similarity matching using ChromaDB
 
 ## Quick Setup
 
-### Requirements
+### Local Development (Recommended)
+```bash
+# Clone and navigate
+git clone <repo-url>
+cd Face_Search
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+python app.py
+```
+
+### Docker Deployment
+```bash
+# Build the image
+docker build -t face-search .
+
+# Run with Docker Compose (recommended)
+docker-compose up -d
+
+# Or run directly
+docker run -p 5000:5000 -v $(pwd)/chroma_db:/app/chroma_db face-search
+```
+
+### Using the Start Script
+```bash
+# Make executable and run
+chmod +x start.sh
+./start.sh
+```
+
+## API Access
+- **Web UI**: http://localhost:5000
+- **Upload Image**: POST /upload-url-image
+- **Search Faces**: POST /check-url-image
+- **Categories**: GET /get-categories
+
+## Requirements
 - Python 3.8+
 - Flask
 - ChromaDB (vector database)

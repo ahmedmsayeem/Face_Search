@@ -340,12 +340,12 @@ function uploadImageByUrl(event) {
 }
 
 function doUploadImageByUrl(imageUrl, category, resultDiv) {
-    fetch('/upload-url', {
+    fetch('/upload-url-image', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ image_url: imageUrl, category: category })
+        body: JSON.stringify({ url: imageUrl, category: category })
     })
     .then(response => response.json())
     .then(data => {
@@ -395,22 +395,21 @@ function searchUrlImage(event) {
 }
 
 function doSearchUrlImage(imageUrl, category, resultDiv, galleryDiv) {
-    fetch('/check-image-by-url', {
+    fetch('/check-url-image', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ image_url: imageUrl, category: category })
+        body: JSON.stringify({ url: imageUrl, category: category })
     })
     .then(response => response.json())
     .then(data => {
         if (data.error) {
             resultDiv.textContent = 'Error: ' + data.error;
-        } else if (data.match && data.filenames && data.filenames.length) {
+        } else if (data.match && data.urls && data.urls.length) {
             resultDiv.textContent = 'Match found!';
             // Show matched images as cards
-            data.filenames.forEach(function(filename, idx) {
-                let imgUrl = (data.urls && data.urls[idx]) ? data.urls[idx] : ('/uploads-link/' + filename);
+            data.urls.forEach(function(imgUrl, idx) {
                 let card = document.createElement('div');
                 card.className = 'image-card';
                 let img = document.createElement('img');
@@ -418,9 +417,9 @@ function doSearchUrlImage(imageUrl, category, resultDiv, galleryDiv) {
                 img.alt = 'Matched Image';
                 let info = document.createElement('div');
                 info.className = 'image-info';
-                let fnameSpan = document.createElement('span');
-                fnameSpan.className = 'filename';
-                fnameSpan.textContent = filename;
+                let urlSpan = document.createElement('span');
+                urlSpan.className = 'filename';
+                urlSpan.textContent = imgUrl;
                 let copyBtn = document.createElement('button');
                 copyBtn.className = 'copy-link-btn';
                 copyBtn.textContent = 'Copy Link';
@@ -431,7 +430,7 @@ function doSearchUrlImage(imageUrl, category, resultDiv, galleryDiv) {
                         alert('Failed to copy link.');
                     });
                 };
-                info.appendChild(fnameSpan);
+                info.appendChild(urlSpan);
                 info.appendChild(copyBtn);
                 card.appendChild(img);
                 card.appendChild(info);
@@ -529,7 +528,7 @@ document.getElementById('create-category-form').addEventListener('submit', funct
         } else {
             resultDiv.textContent = 'Category added!';
             input.value = '';
-            populateBulkCategorySelect();
+            refreshAllCategoryDropdowns();
             fetchCategoriesAndImages();
         }
     })
@@ -571,6 +570,13 @@ function populateSearchCategorySelect() {
         });
 }
 document.addEventListener('DOMContentLoaded', populateSearchCategorySelect);
+
+// Unified function to refresh all category dropdowns
+function refreshAllCategoryDropdowns() {
+    populateBulkCategorySelect();
+    populateUrlUploadCategorySelect();
+    populateSearchCategorySelect();
+}
 
 // Handle bulk upload with category (existing or new)
 document.getElementById('bulk-upload-form').addEventListener('submit', function(e) {
@@ -625,6 +631,7 @@ function doBulkUpload(files, category, resultDiv) {
             resultDiv.textContent = 'Error: ' + data.error;
         } else {
             resultDiv.textContent = 'Success! Uploaded: ' + (data.files || []).join(', ');
+            refreshAllCategoryDropdowns();
             fetchCategoriesAndImages();
         }
     })

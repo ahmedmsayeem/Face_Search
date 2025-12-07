@@ -1,67 +1,193 @@
-# Face Search
+# Face Search API
 
-This project is a Flask-based web application for detecting faces in an uploaded image, extracting face encodings, and comparing two faces to determine if they match.
+A Flask-based REST API for face detection and similarity matching using ChromaDB vector database for efficient face embeddings storage and search.
 
 ## Features
-- Detect faces in an uploaded image.
-- Extract face encodings using `dlib`.
-- Compare two faces to check if they match.
-- Simple and user-friendly web interface.
+- **ChromaDB Integration**: Fast vector similarity search for face embeddings
+- **Local & Free**: Runs entirely on your machine, no cloud dependencies
+- **Face Recognition**: Uses dlib's state-of-the-art face recognition models
+- **Category Support**: Organize face embeddings by categories
+- **Web Interface**: Simple UI for testing and visualization
+- **Docker Support**: Easy deployment with Docker
 
-## Prerequisites
-- Python 3.7 or highe Face_Search
+## Quick Setup
+
+### Requirements
+- Python 3.8+
+- Flask
+- ChromaDB (vector database)
+- dlib (face recognition)
+
+### Option 1: Docker (Recommended)
+```bash
+git clone https://github.com/ahmedmsayeem/Face_Search.git
+cd Face_Search
+docker build -t face-search .
+docker run -p 5000:5000 face-search
 ```
 
-### 2. Create and Activate a Virtual Environment
+### Option 2: Local Installation
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-Install the required Python packages:
-```bash
+git clone https://github.com/ahmedmsayeem/Face_Search.git
+cd Face_Search
 pip install -r requirements.txt
-```
-
-### 4. Download Required Model Files
-Download the following `.dat` files and place them in the `models` directory:
-- [dlib_face_recognition_resnet_model_v1.dat](http://dlib.net/files/dlib_face_recognition_resnet_model_v1.dat.bz2)
-- [shape_predictor_68_face_landmarks.dat](http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2)
-
-Extract the `.bz2` files and move the `.dat` files into the `models` directory.
-
-### 5. Run the Application
-Start the Flask application:
-```bash
+python chroma_init.py  # Initialize ChromaDB and download models
 python app.py
 ```
 
-The application will be available at `http://127.0.0.1:5000`.
+## API Endpoints
 
-### 6. Usage
-1. Open the application in your browser.
-2. Upload an image with two faces to compare.
-3. The application will display the number of detected faces and whether the two faces match.
+### 1. Upload Image by URL
+**Endpoint:** `POST /upload-url-image`
 
-## Generate `requirements.txt`
-To generate a `requirements.txt` file from your virtual environment, run:
+Upload and process an image from a URL to extract face embeddings and store in ChromaDB.
+
+**Parameters:**
+- `url` (string, required): Link to the image
+- `category` (string, optional): Category name to organize images
+
+**Request Example:**
 ```bash
-pip freeze > requirements.txt
+curl -X POST http://localhost:5000/upload-url-image \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/image1.jpg", "category": "event1"}'
 ```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "message": "Image uploaded successfully",
+  "url": "https://example.com/image1.jpg",
+  "category": "event1"
+}
+```
+
+### 2. Check Similar Images
+**Endpoint:** `POST /check-url-image`
+
+Find similar faces by comparing an image URL against stored face embeddings using ChromaDB's vector similarity search.
+
+**Parameters:**
+- `url` (string, required): Link to the image to compare
+- `category` (string, optional): Limit search within specific category
+
+**Request Example:**
+```bash
+curl -X POST http://localhost:5000/check-url-image \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/test-image.jpg", "category": "event1"}'
+```
+
+**Response Example:**
+```json
+{
+  "match": true,
+  "urls": [
+    "https://example.com/event1/pic1.jpg",
+    "https://example.com/event1/pic2.jpg"
+  ]
+}
+```
+
+### 3. Additional Endpoints
+
+#### Get Categories
+```bash
+GET /get-categories
+# Returns: {"categories": ["event1", "event2", ...]}
+```
+
+#### Get Database Stats
+```bash
+GET /stats
+# Returns: {"total_face_embeddings": 150, "collection_name": "face_embeddings"}
+```
+
+## Technology Stack
+
+- **Backend**: Flask (Python)
+- **Vector Database**: ChromaDB (local, persistent)
+- **Face Recognition**: dlib with ResNet models
+- **Image Processing**: OpenCV
+- **Frontend**: HTML/CSS/JavaScript (simple web UI)
+
+## Why ChromaDB?
+
+✅ **Free & Local**: No cloud dependencies or costs  
+✅ **Fast Similarity Search**: Optimized for vector operations  
+✅ **Easy to Use**: Simple Python API  
+✅ **Persistent**: Data survives restarts  
+✅ **Scalable**: Handles thousands of face embeddings efficiently  
+
+## Examples
+
+### JavaScript (Frontend)
+```javascript
+// Upload image
+const uploadResponse = await fetch('/upload-url-image', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    url: 'https://example.com/image.jpg',
+    category: 'event1'
+  })
+});
+
+// Check for similar images
+const checkResponse = await fetch('/check-url-image', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    url: 'https://example.com/test.jpg',
+    category: 'event1'
+  })
+});
+```
+
+### Python (Backend/API)
+```python
+import requests
+
+# Upload image
+upload_data = {
+    "url": "https://example.com/image.jpg",
+    "category": "event1"
+}
+response = requests.post('http://localhost:5000/upload-url-image', json=upload_data)
+
+# Check for similar images
+check_data = {
+    "url": "https://example.com/test.jpg",
+    "category": "event1"
+}
+response = requests.post('http://localhost:5000/check-url-image', json=check_data)
+```
+
+## Error Responses
+Common error responses include:
+- `400 Bad Request`: Missing required parameters
+- `400 Bad Request`: No faces found in image
+- `400 Bad Request`: Invalid image format or URL
+- `500 Internal Server Error`: Processing error
 
 ## Project Structure
 ```
 Face_Search/
-├── app.py                 # Main application file
-├── templates/
-│   └── index.html         # HTML template for the web interface
-├── uploads/               # Directory for uploaded images
-├── models/                # Directory for model files
-├── venv/                  # Virtual environment (ignored by .gitignore)
-├── .gitignore             # Git ignore file
-└── README.md              # Project documentation
+├── app.py                          # Main Flask application
+├── chroma_face_utils.py            # ChromaDB face search utilities
+├── chroma_init.py                  # Database initialization
+├── file_utils.py                   # File handling utilities
+├── requirements.txt                # Python dependencies
+├── Dockerfile                      # Docker configuration
+├── templates/                      # Web UI templates
+│   └── index.html
+├── models/                         # Face recognition models (auto-downloaded)
+├── uploads/                        # Temporary image storage
+└── chroma_db/                      # ChromaDB persistent storage
 ```
 
-## License
-This project is licensed under the MIT License.
+---
+
+**GitHub:** [ahmedmsayeem/Face_Search](https://github.com/ahmedmsayeem/Face_Search)  
+© 2025 Face Search API
